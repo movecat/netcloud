@@ -48,6 +48,16 @@ write_var() {
   printf '%s=%s\n' "$1" "$(env_quote "$2")"
 }
 
+git_with_auth() {
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    local auth
+    auth="$(printf 'x-access-token:%s' "$GITHUB_TOKEN" | base64 | tr -d '\n')"
+    git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" "$@"
+  else
+    git "$@"
+  fi
+}
+
 install_docker() {
   if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     return
@@ -87,11 +97,14 @@ sync_repo() {
     apt-get update
     apt-get install -y git
   fi
+  if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+    echo "[提示] 已检测到 GITHUB_TOKEN，将用于拉取私有仓库。"
+  fi
   if [[ -d "$APP_DIR/.git" ]]; then
-    git -C "$APP_DIR" pull --ff-only
+    git_with_auth -C "$APP_DIR" pull --ff-only
   else
     rm -rf "$APP_DIR"
-    git clone "$REPO_URL" "$APP_DIR"
+    git_with_auth clone "$REPO_URL" "$APP_DIR"
   fi
   mkdir -p "$APP_DIR/data" "$APP_DIR/logs"
 }
