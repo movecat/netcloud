@@ -2,8 +2,10 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/movecat/netcloud.git}"
-APP_DIR="${KCLOUD_DIR:-/opt/kcloud-ssr}"
-CONTAINER_NAME="kcloud-ssr"
+KCLOUD_NAME="${KCLOUD_NAME:-kcloud-ssr}"
+APP_DIR="${KCLOUD_DIR:-/opt/${KCLOUD_NAME}}"
+CONTAINER_NAME="${KCLOUD_CONTAINER_NAME:-${KCLOUD_NAME}}"
+IMAGE_NAME="${KCLOUD_IMAGE:-${KCLOUD_NAME}:legacy}"
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "[错误] 请用 root 用户执行"
@@ -81,6 +83,10 @@ install_docker() {
 
 sync_repo() {
   echo "[2/5] 下载运行文件..."
+  if ! command -v git >/dev/null 2>&1; then
+    apt-get update
+    apt-get install -y git
+  fi
   if [[ -d "$APP_DIR/.git" ]]; then
     git -C "$APP_DIR" pull --ff-only
   else
@@ -129,6 +135,8 @@ configure_env() {
   umask 077
   {
     write_var INSTALL_MODE "docker"
+    write_var KCLOUD_CONTAINER_NAME "$CONTAINER_NAME"
+    write_var KCLOUD_IMAGE "$IMAGE_NAME"
     write_var API_INTERFACE "$api"
     write_var UPDATE_TIME "60"
     write_var SERVER_PUB_ADDR "$server_pub"
@@ -182,7 +190,8 @@ open_firewall() {
 }
 
 write_manager() {
-  cat > /usr/local/bin/kcloud-ssr <<EOF
+  local manager="/usr/local/bin/${CONTAINER_NAME}"
+  cat > "$manager" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$APP_DIR"
@@ -195,10 +204,10 @@ case "\${1:-status}" in
   config) \${EDITOR:-nano} "$APP_DIR/.env" ;;
   view) docker exec -it "$CONTAINER_NAME" kcloud-entrypoint view ;;
   shell) docker exec -it "$CONTAINER_NAME" bash ;;
-  *) echo "用法: kcloud-ssr start|stop|restart|status|logs|config|view|shell" ;;
+  *) echo "用法: $CONTAINER_NAME start|stop|restart|status|logs|config|view|shell" ;;
 esac
 EOF
-  chmod +x /usr/local/bin/kcloud-ssr
+  chmod +x "$manager"
 }
 
 start_service() {
@@ -216,9 +225,9 @@ start_service
 
 echo
 echo "安装完成。常用命令："
-echo "  kcloud-ssr status"
-echo "  kcloud-ssr logs"
-echo "  kcloud-ssr restart"
-echo "  kcloud-ssr config"
+echo "  ${CONTAINER_NAME} status"
+echo "  ${CONTAINER_NAME} logs"
+echo "  ${CONTAINER_NAME} restart"
+echo "  ${CONTAINER_NAME} config"
 echo
 echo "注意：云服务器还需要在云厂商安全组里放行用户端口段和单端口。"
