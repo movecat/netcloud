@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${Kcloud_DIR:-/opt/kcloud-ssr}"
+APP_DIR="${KCLOUD_DIR:-/opt/kcloud-ssr}"
 IMAGE_NAME="kcloud-ssr:legacy"
 CONTAINER_NAME="kcloud-ssr"
 
