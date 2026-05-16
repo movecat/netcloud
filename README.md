@@ -18,6 +18,14 @@
 bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
 ```
 
+如果仓库改成私有，需要先准备 GitHub token。Fine-grained token 给 `movecat/netcloud` 仓库 `Contents: Read-only` 权限即可；classic token 需要 `repo` 权限。服务器上用 root 执行：
+
+```bash
+export GITHUB_TOKEN=你的GitHubToken
+bash -c 'curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh | bash'
+unset GITHUB_TOKEN
+```
+
 安装完成后的常用命令：
 
 ```bash
@@ -34,6 +42,15 @@ kcloud-ssr config
 ```bash
 KCLOUD_NAME=kcloud-a bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
 KCLOUD_NAME=kcloud-b bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
+```
+
+私有仓库的多实例写法：
+
+```bash
+export GITHUB_TOKEN=你的GitHubToken
+KCLOUD_NAME=kcloud-a bash -c 'curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh | bash'
+KCLOUD_NAME=kcloud-b bash -c 'curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh | bash'
+unset GITHUB_TOKEN
 ```
 
 安装后分别管理：
