@@ -27,6 +27,22 @@ kcloud-ssr restart
 kcloud-ssr config
 ```
 
+## 多实例
+
+一台服务器可以跑多个实例，但每个实例必须使用不同的端口段和单端口。
+
+```bash
+KCLOUD_NAME=kcloud-a bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
+KCLOUD_NAME=kcloud-b bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
+```
+
+安装后分别管理：
+
+```bash
+kcloud-a logs
+kcloud-b restart
+```
+
 如果数据库在宿主机本机，Compose 使用 `network_mode: host`，所以 `DB_HOST=127.0.0.1` 可以直接指向宿主机 MySQL。
 
 如果数据库在其他服务器，直接填写远程地址即可。
