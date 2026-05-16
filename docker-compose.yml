@@ -1,0 +1,13 @@
+services:
+  kcloud-ssr:
+    build:
+      context: .
+    image: kcloud-ssr:legacy
+    container_name: kcloud-ssr
+    network_mode: host
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+      - ./logs:/var/log/kcloud
