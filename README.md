@@ -10,21 +10,21 @@
 - 支持单端口多用户 `additional_ports`
 - 支持 Docker restart 策略
 
-## 一键安装
+## 一键安装 Debian 13
 
-上传到 GitHub 后，服务器上执行：
+服务器上用 root 执行：
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
 ```
 
-在 Debian 13 宿主机上运行：
+安装完成后的常用命令：
 
 ```bash
-cd /Users/mao/Desktop/未命名文件夹
-./kcloud-docker.sh install
-./kcloud-docker.sh status
-./kcloud-docker.sh logs
+kcloud-ssr status
+kcloud-ssr logs
+kcloud-ssr restart
+kcloud-ssr config
 ```
 
 如果数据库在宿主机本机，Compose 使用 `network_mode: host`，所以 `DB_HOST=127.0.0.1` 可以直接指向宿主机 MySQL。
