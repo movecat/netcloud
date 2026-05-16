@@ -22,7 +22,7 @@ bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/instal
 
 ```bash
 export GITHUB_TOKEN=你的GitHubToken
-bash -c 'curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh | bash'
+bash <(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
 unset GITHUB_TOKEN
 ```
 
@@ -48,8 +48,8 @@ KCLOUD_NAME=kcloud-b bash <(curl -fsSL https://raw.githubusercontent.com/movecat
 
 ```bash
 export GITHUB_TOKEN=你的GitHubToken
-KCLOUD_NAME=kcloud-a bash -c 'curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh | bash'
-KCLOUD_NAME=kcloud-b bash -c 'curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh | bash'
+KCLOUD_NAME=kcloud-a bash <(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
+KCLOUD_NAME=kcloud-b bash <(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
 unset GITHUB_TOKEN
 ```
 
