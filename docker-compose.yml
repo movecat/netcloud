@@ -2,8 +2,8 @@ services:
   kcloud-ssr:
     build:
       context: .
-    image: kcloud-ssr:legacy
-    container_name: kcloud-ssr
+    image: ${KCLOUD_IMAGE:-kcloud-ssr:legacy}
+    container_name: ${KCLOUD_CONTAINER_NAME:-kcloud-ssr}
     network_mode: host
     restart: unless-stopped
     env_file:
