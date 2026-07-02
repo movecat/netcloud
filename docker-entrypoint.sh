@@ -69,7 +69,8 @@ config = {
     "speed_limit_per_con": speed_limit_kb if single_port_enabled else 0,
     "speed_limit_per_user": speed_limit_kb,
     "dns_ipv6": bool_on("DNS_IPV6", "off"),
-    "connect_verbose_info": int_env("CONNECT_VERBOSE_INFO", 1),
+    "verbose": int_env("SSR_VERBOSE", -2),
+    "connect_verbose_info": int_env("CONNECT_VERBOSE_INFO", 0),
     "redirect": ["bing.com", "12.12.1.1"],
     "fast_open": bool_on("FAST_OPEN", "off"),
 }
