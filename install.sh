@@ -5,7 +5,17 @@ REPO_URL="${REPO_URL:-https://github.com/movecat/netcloud.git}"
 KCLOUD_NAME="${KCLOUD_NAME:-kcloud-ssr}"
 APP_DIR="${KCLOUD_DIR:-/opt/${KCLOUD_NAME}}"
 CONTAINER_NAME="${KCLOUD_CONTAINER_NAME:-${KCLOUD_NAME}}"
-IMAGE_NAME="${KCLOUD_IMAGE:-${KCLOUD_NAME}:legacy}"
+if [[ -n "${KCLOUD_IMAGE:-}" ]]; then
+  IMAGE_NAME="$KCLOUD_IMAGE"
+else
+  IMAGE_NAME="$(printf '%s' "${KCLOUD_NAME}:legacy" | tr '[:upper:]' '[:lower:]')"
+fi
+
+if [[ "$IMAGE_NAME" =~ [A-Z] ]]; then
+  echo "[错误] Docker 镜像名必须全小写：${IMAGE_NAME}"
+  echo "请改用小写 KCLOUD_IMAGE，例如 ${IMAGE_NAME,,}"
+  exit 1
+fi
 
 if [[ "${EUID}" -ne 0 ]]; then
   echo "[错误] 请用 root 用户执行"
