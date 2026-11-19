@@ -45,7 +45,7 @@ usage() {
   --name NAME             实例名，也是管理命令名 (默认 kcloud-ssr)
   --firewall strict|off   strict: 只放行 SSH 和节点端口 (默认)；off: 不改防火墙
   --no-tune               不做 BBR / TCP 缓冲区调优
-  --ssr-ref BRANCH        shadowsocksr-manyuser 分支 (默认 modern)
+  --ssr-ref BRANCH        shadowsocksr-manyuser 分支 (默认 master)
   --reconfigure           已安装时重新生成 .env
   -h, --help              显示帮助
 USAGE
@@ -55,7 +55,7 @@ KCLOUD_NAME="${KCLOUD_NAME:-kcloud-ssr}"
 REPO_URL="${REPO_URL:-https://github.com/movecat/netcloud.git}"
 NETCLOUD_REF="${NETCLOUD_REF:-main}"
 SSR_REPO="${SSR_REPO:-https://github.com/movecat/shadowsocksr-manyuser.git}"
-SSR_REF="${SSR_REF:-modern}"
+SSR_REF="${SSR_REF:-master}"
 FIREWALL="${FIREWALL:-}"
 TUNE="${TUNE:-on}"
 RECONFIGURE=0

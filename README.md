@@ -2,7 +2,7 @@
 
 这套文件把原来的 `kcloud.sh` 改成 Docker 运行方式，保留核心功能：
 
-- 从 `movecat/shadowsocksr-manyuser`（`modern` 分支）构建镜像
+- 从自己维护的 `movecat/shadowsocksr-manyuser`（`master`）构建镜像
 - 自动生成 `user-config.json`
 - 自动生成 `usermysql.json`
 - 自动生成 `apiconfig.py`
