@@ -140,7 +140,7 @@ write_var() {
 
 env_get() {
   [[ -f "$ENV_FILE" ]] || return 0
-  grep -E "^$1=" "$ENV_FILE" | tail -1 | sed -E 's/^[^=]+="?(.*[^"])?"?$/\1/'
+  { grep -E "^$1=" "$ENV_FILE" || true; } | tail -1 | sed -E 's/^[^=]+="?(.*[^"])?"?$/\1/'
 }
 
 set_env() {
