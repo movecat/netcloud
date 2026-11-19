@@ -178,7 +178,7 @@ checkout() {
   if [[ -d "$dir/.git" ]]; then
     git -C "$dir" remote set-url origin "$repo"
     git_with_auth -C "$dir" fetch --depth=1 origin "$ref"
-    git -C "$dir" checkout -q -B "$ref" FETCH_HEAD
+    git -C "$dir" checkout -q -f -B "$ref" FETCH_HEAD
     git -C "$dir" reset -q --hard FETCH_HEAD
   else
     rm -rf "$dir"
