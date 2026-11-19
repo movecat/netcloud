@@ -76,6 +76,8 @@ config = {
 }
 
 if single_port_enabled:
+    # Only the single port listens; the per-user ports stay closed (customers use the single port).
+    config["additional_ports_only"] = bool_on("SINGLE_PORT_ONLY", "on")
     config["additional_ports"] = {
         env("SINGLE_PORT", "443"): {
             "passwd": env("SINGLE_PASSWORD", ""),

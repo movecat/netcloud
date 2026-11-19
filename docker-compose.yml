@@ -2,10 +2,12 @@ services:
   kcloud-ssr:
     build:
       context: .
-    image: ${KCLOUD_IMAGE:-kcloud-ssr:legacy}
+    image: ${KCLOUD_IMAGE:-kcloud-ssr:latest}
     container_name: ${KCLOUD_CONTAINER_NAME:-kcloud-ssr}
     network_mode: host
     restart: unless-stopped
+    # Time for the node to write pending traffic back to the database on stop.
+    stop_grace_period: 30s
     logging:
       driver: json-file
       options:

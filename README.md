@@ -2,7 +2,7 @@
 
 这套文件把原来的 `kcloud.sh` 改成 Docker 运行方式，保留核心功能：
 
-- 从 `movecat/shadowsocksr-manyuser` 构建镜像
+- 从 `movecat/shadowsocksr-manyuser`（`modern` 分支）构建镜像
 - 自动生成 `user-config.json`
 - 自动生成 `usermysql.json`
 - 自动生成 `apiconfig.py`
@@ -10,30 +10,43 @@
 - 支持单端口多用户 `additional_ports`
 - 支持 Docker restart 策略
 
-## 一键安装 Debian 13
+## 一键安装（Debian 12 / 13）
 
-服务器上用 root 执行：
+一行命令装完，不再逐项提问（以 LegendSock 面板为例）：
 
 ```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
+bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh) \
+  --db-host 47.244.157.80 --db-name rrsls --db-user rrsls --db-pass '数据库密码' \
+  --single-port 59113 --single-pass '单端口密码'
 ```
 
-如果仓库改成私有，需要先准备 GitHub token。Fine-grained token 给 `movecat/netcloud` 仓库 `Contents: Read-only` 权限即可；classic token 需要 `repo` 权限。服务器上用 root 执行：
+- 加密、协议、混淆默认 `chacha20 / auth_aes128_md5 / tls1.2_ticket_auth`，可用 `--single-method / --single-protocol / --single-obfs` 改，必须和面板里的单端口设置一致。
+- 默认只开单端口（`--single-only on`），不再给每个用户单独开端口。
+- 默认开启严格防火墙（只放行 SSH 和单端口）和 BBR / TCP 缓冲区调优；不要的话加 `--firewall off` / `--no-tune`。
+- 全部选项：`install.sh --help`。不带选项运行时和以前一样逐项提问。
+- 云服务商的安全组还要放行单端口（TCP 和 UDP）。
+
+如果仓库改成私有，需要先准备 GitHub token。Fine-grained token 给 `movecat/netcloud` 和 `movecat/shadowsocksr-manyuser` 仓库 `Contents: Read-only` 权限即可；classic token 需要 `repo` 权限：
 
 ```bash
 export GITHUB_TOKEN=你的GitHubToken
-bash <(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh)
+bash <(curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/movecat/netcloud/main/install.sh) --db-host ...
 unset GITHUB_TOKEN
 ```
 
-安装完成后的常用命令：
+## 管理命令
 
 ```bash
-kcloud-ssr status
-kcloud-ssr logs
-kcloud-ssr restart
-kcloud-ssr config
+kcloud-ssr status      # 运行状态
+kcloud-ssr log         # 实时日志
+kcloud-ssr restart     # 重启
+kcloud-ssr config      # 修改配置（.env）并重启
+kcloud-ssr update      # 升级到最新版（保留配置）
+kcloud-ssr version     # 当前版本
+kcloud-ssr uninstall   # 卸载
 ```
+
+节点程序来自 `movecat/shadowsocksr-manyuser` 的 `modern` 分支（Python 3.12；用户超额、被暂停或改密码后立即断开其现有连接；停止时先把未提交的流量写回数据库）。
 
 ## 多实例
 
