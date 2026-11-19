@@ -1,19 +1,28 @@
 #!/usr/bin/env bash
-# KCloud SSR node installer (Docker). One line, no questions when the options are given:
+# KCloud SSR node installer (Docker). One line, no questions when the options are given.
 #
+# Panel mode (LegendSock node API; the panel's 节点接入 page shows this line with the node's key):
+#   bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh) \
+#     --panel https://huohuxx.com --node-key KEY
+#
+# Database mode:
 #   bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh) \
 #     --db-host 47.244.157.80 --db-name rrsls --db-user rrsls --db-pass 'xxx' \
 #     --single-port 59113 --single-pass 'xxx'
 #
 # Run without options for the old question-and-answer install. Run it again on an installed node to
-# update it (the existing .env is kept unless --reconfigure or database options are given).
+# update it (the existing .env is kept unless --reconfigure, --panel or database options are given).
 set -euo pipefail
 
 usage() {
   cat <<'USAGE'
 用法: install.sh [选项]
 
-数据库（面板）:
+面板模式（推荐，节点不保存数据库密码；单端口等设置由面板下发）:
+  --panel URL             面板网址，例如 https://huohuxx.com
+  --node-key KEY          面板「LegendSock → 节点接入」里生成的节点密钥
+
+数据库模式:
   --api NAME              接口: legendsockssr(默认)/sspanelv3/glzjinmod/sspanelv2/mudbjson
   --db-host HOST          数据库地址
   --db-port PORT          数据库端口 (默认 3306)
@@ -47,16 +56,19 @@ REPO_URL="${REPO_URL:-https://github.com/movecat/netcloud.git}"
 NETCLOUD_REF="${NETCLOUD_REF:-main}"
 SSR_REPO="${SSR_REPO:-https://github.com/movecat/shadowsocksr-manyuser.git}"
 SSR_REF="${SSR_REF:-modern}"
-FIREWALL="${FIREWALL:-strict}"
+FIREWALL="${FIREWALL:-}"
 TUNE="${TUNE:-on}"
 RECONFIGURE=0
 
 API="" DB_HOST="" DB_PORT="" DB_USER="" DB_PASS="" DB_NAME="" SERVER_ADDR=""
 SINGLE_PORT="" SINGLE_PASS="" SINGLE_METHOD="" SINGLE_PROTOCOL="" SINGLE_OBFS="" SINGLE_ONLY="" SPEED="" PORT_RANGE=""
 GIVEN_DB=0
+PANEL_URL="" NODE_KEY=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --panel) PANEL_URL="$2"; GIVEN_DB=1; shift 2 ;;
+    --node-key) NODE_KEY="$2"; GIVEN_DB=1; shift 2 ;;
     --api) API="$2"; shift 2 ;;
     --db-host) DB_HOST="$2"; GIVEN_DB=1; shift 2 ;;
     --db-port) DB_PORT="$2"; shift 2 ;;
@@ -131,6 +143,20 @@ env_get() {
   grep -E "^$1=" "$ENV_FILE" | tail -1 | sed -E 's/^[^=]+="?(.*[^"])?"?$/\1/'
 }
 
+set_env() {
+  if grep -qE "^$1=" "$ENV_FILE"; then
+    sed -i -E "s|^$1=.*|$1=$(env_quote "$2" | sed 's/[&|]/\\&/g')|" "$ENV_FILE"
+  else
+    write_var "$1" "$2" >> "$ENV_FILE"
+  fi
+}
+
+# The node's single port, from the panel's node API (panel mode).
+panel_single_port() {
+  curl -fsS --max-time 20 -H "X-Node-Key: $2" "${1%/}/modules/addons/legendsock/nodeapi.php?action=config" \
+    | grep -oE '"single_port":[0-9]+' | cut -d: -f2 | grep -E '^[0-9]+$'
+}
+
 git_with_auth() {
   if [[ -n "${GITHUB_TOKEN:-}" ]]; then
     local auth
@@ -202,8 +228,47 @@ configure_env() {
   if [[ -f "$ENV_FILE" && "$RECONFIGURE" -eq 0 && "$GIVEN_DB" -eq 0 ]]; then
     # Keep the installed node's settings; only add settings that newer versions introduced.
     grep -q '^SINGLE_PORT_ONLY=' "$ENV_FILE" || write_var SINGLE_PORT_ONLY "${SINGLE_ONLY:-on}" >> "$ENV_FILE"
-    sed -i -E "s|^KCLOUD_IMAGE=.*|KCLOUD_IMAGE=$(env_quote "$IMAGE_NAME")|" "$ENV_FILE"
+    set_env KCLOUD_IMAGE "$IMAGE_NAME"
+    set_env KCLOUD_FIREWALL "$FIREWALL"
+    if [[ "$(env_get API_INTERFACE)" == "legendsockapi" ]]; then
+      # The panel may have moved the node to another port: the firewall follows it.
+      local port
+      port="$(panel_single_port "$(env_get PANEL_URL)" "$(env_get NODE_KEY)")" && set_env SINGLE_PORT "$port"
+    fi
     echo "已保留现有配置 $ENV_FILE（重新配置请加 --reconfigure）"
+    return
+  fi
+
+  if [[ -n "$PANEL_URL" || -n "$NODE_KEY" ]]; then
+    require "--panel" "$PANEL_URL"; require "--node-key" "$NODE_KEY"
+    PANEL_URL="${PANEL_URL%/}"
+    local port
+    if ! port="$(panel_single_port "$PANEL_URL" "$NODE_KEY")"; then
+      echo "[错误] 无法从面板读取节点设置，请检查 --panel 网址和 --node-key 密钥"
+      exit 2
+    fi
+    umask 077
+    {
+      write_var INSTALL_MODE "docker"
+      write_var KCLOUD_CONTAINER_NAME "$CONTAINER_NAME"
+      write_var KCLOUD_IMAGE "$IMAGE_NAME"
+      write_var KCLOUD_FIREWALL "$FIREWALL"
+      write_var API_INTERFACE "legendsockapi"
+      write_var PANEL_URL "$PANEL_URL"
+      write_var NODE_KEY "$NODE_KEY"
+      write_var TRANSFER_MUL "1.0"
+      write_var SINGLE_PORT_MODE "on"
+      write_var SINGLE_PORT_ONLY "on"
+      write_var SINGLE_PORT "$port"
+      write_var SSR_VERBOSE "-2"
+      write_var CONNECT_VERBOSE_INFO "0"
+      write_var DOCKER_LOG_MAX_SIZE "20m"
+      write_var DOCKER_LOG_MAX_FILE "3"
+      write_var LOGS_SAVE "y"
+      write_var LOGS_SAVE_DAYS "30"
+      write_var NOFILE_LIMIT "51200"
+    } > "$ENV_FILE"
+    echo "面板模式：单端口 $port，加密 / 协议 / 混淆 / 限速由面板下发"
     return
   fi
 
@@ -236,6 +301,7 @@ configure_env() {
     write_var INSTALL_MODE "docker"
     write_var KCLOUD_CONTAINER_NAME "$CONTAINER_NAME"
     write_var KCLOUD_IMAGE "$IMAGE_NAME"
+    write_var KCLOUD_FIREWALL "$FIREWALL"
     write_var API_INTERFACE "$API"
     write_var UPDATE_TIME "60"
     write_var SERVER_PUB_ADDR "$SERVER_ADDR"
@@ -369,7 +435,7 @@ case "\${1:-status}" in
   status) docker compose ps; docker exec "$CONTAINER_NAME" kcloud-entrypoint status || true ;;
   log|logs) docker compose logs -f --tail=200 ;;
   config) \${EDITOR:-nano} "$APP_DIR/.env" && docker compose up -d --force-recreate ;;
-  update) KCLOUD_NAME="$KCLOUD_NAME" SSR_REF="\${2:-$SSR_REF}" bash "$APP_DIR/install.sh" --name "$KCLOUD_NAME" --firewall none --no-tune ;;
+  update) KCLOUD_NAME="$KCLOUD_NAME" SSR_REF="\${2:-$SSR_REF}" bash "$APP_DIR/install.sh" --name "$KCLOUD_NAME" --no-tune ;;
   version) echo "netcloud \$(git -C "$APP_DIR" log -1 --format='%h %cs')"; echo "ssr \$(git -C "$APP_DIR/ssr" log -1 --format='%h %cs %s')" ;;
   view) docker exec -it "$CONTAINER_NAME" kcloud-entrypoint view ;;
   shell) docker exec -it "$CONTAINER_NAME" bash ;;
@@ -390,6 +456,9 @@ start_service() {
   cd "$APP_DIR"
   docker compose up -d --build --force-recreate
 }
+
+FIREWALL="${FIREWALL:-$(env_get KCLOUD_FIREWALL)}"
+FIREWALL="${FIREWALL:-strict}"
 
 install_docker
 sync_repo

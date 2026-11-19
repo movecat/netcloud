@@ -12,6 +12,20 @@
 
 ## 一键安装（Debian 12 / 13）
 
+### 面板模式（推荐）
+
+在 WHMCS 后台「插件 → LegendSock → 节点接入」添加节点，页面会显示节点密钥和下面这样一行命令，在节点上用 root 执行即可：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/movecat/netcloud/main/install.sh) --panel https://huohuxx.com --node-key 节点密钥
+```
+
+- 节点通过面板的节点接口同步用户和上报流量，**节点上不保存数据库账号密码**。
+- 单端口端口、加密、协议、混淆、单端口密码、限速都由面板下发；在面板改了之后节点会在一分钟内自动重启生效（改了端口要在节点上执行一次 `kcloud-ssr update`，让防火墙跟着改）。
+- 已装好的数据库模式节点，执行同一行命令就会切换到面板模式。
+
+### 数据库模式
+
 一行命令装完，不再逐项提问（以 LegendSock 面板为例）：
 
 ```bash

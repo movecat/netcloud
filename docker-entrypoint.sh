@@ -32,7 +32,41 @@ def bool_on(name, default="off"):
     return env(name, default).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 api_interface = env("API_INTERFACE", "legendsockssr")
-db_required = api_interface != "mudbjson"
+db_required = api_interface not in ("mudbjson", "legendsockapi")
+
+# Panel mode: the single-port settings come from the panel's node API (LegendSock nodeapi.php).
+panel = None
+if api_interface == "legendsockapi":
+    import urllib.request
+    panel_api = env("PANEL_URL").rstrip("/") + "/modules/addons/legendsock/nodeapi.php"
+    if not env("PANEL_URL").strip() or not env("NODE_KEY").strip():
+        print("missing PANEL_URL / NODE_KEY for API_INTERFACE=legendsockapi", file=sys.stderr)
+        sys.exit(64)
+    try:
+        req = urllib.request.Request(panel_api + "?action=config", headers={"X-Node-Key": env("NODE_KEY"), "User-Agent": "kcloud-node"})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            panel = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print("cannot read node settings from the panel (" + panel_api + "): " + str(e), file=sys.stderr)
+        sys.exit(75)
+    if not panel.get("ok"):
+        print("panel refused the node key: " + str(panel.get("error")), file=sys.stderr)
+        sys.exit(77)
+    print("panel node: %s, single port %s" % (panel["node"]["name"], panel["single_port"]))
+    os.environ.update({
+        "SINGLE_PORT_MODE": "on",
+        "SINGLE_PORT": str(panel["single_port"]),
+        "SINGLE_PASSWORD": panel["password"],
+        "SINGLE_METHOD": panel["method"],
+        "SINGLE_PROTOCOL": panel["protocol"],
+        "SINGLE_OBFS": panel["obfs"],
+        "SSR_METHOD": panel["method"],
+        "SSR_PROTOCOL": panel["protocol"],
+        "SSR_OBFS": panel["obfs"],
+        "SPEED_LIMIT_MBPS": str(panel["speed_limit_mbps"]),
+        "SPEED_LIMIT_KB": "",
+        "UPDATE_TIME": str(panel["update_time"]),
+    })
 required = ["DB_HOST", "DB_USER", "DB_NAME"]
 missing = [name for name in required if db_required and not env(name).strip()]
 if missing:
@@ -111,6 +145,11 @@ mysql = {
     json.dumps(mysql, ensure_ascii=False, indent=4) + "\n",
     encoding="utf-8",
 )
+
+if panel is not None:
+    muapi = {"url": panel_api, "key": env("NODE_KEY"), "transfer_mul": float_env("TRANSFER_MUL", 1.0)}
+    (ssr_dir / "usermuapi.json").write_text(json.dumps(muapi, indent=4) + "\n", encoding="utf-8")
+    os.chmod(ssr_dir / "usermuapi.json", 0o600)
 
 mudb = data_dir / "mudb.json"
 if not mudb.exists():
